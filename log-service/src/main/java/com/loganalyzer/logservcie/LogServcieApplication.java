@@ -1,4 +1,4 @@
-package com.log_analyzer.log_servcie;
+package com.loganalyzer.logservcie;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
