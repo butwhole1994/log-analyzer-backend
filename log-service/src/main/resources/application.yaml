@@ -1,3 +1,11 @@
+server:
+  port: ${PORT:7020}
+
 spring:
   application:
-    name: log-servcie
+    name: log-service
+  profiles:
+    default: local
+  output:
+    ansi:
+      enabled: always

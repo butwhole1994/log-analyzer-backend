@@ -1,0 +1,27 @@
+
+
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:16379}
+      timeout: 2s
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: log-service
+    #          uri: ${LOG_SERVICE_URL:http://log-service:7020}
+              uri: ${LOG_SERVICE_URL:http://localhost:7020}
+              predicates:
+                - Path=/log-service/**
+              filters:
+                - StripPrefix=1
+            - id: event-consumer
+    #          uri: ${EVENT_CONSUMER_URL:http://event-consumer:7030}
+              uri: ${EVENT_CONSUMER_URL:http://localhost:7030}
+              predicates:
+                - Path=/event-consumer/**
+              filters:
+                - StripPrefix=1

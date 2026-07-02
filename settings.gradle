@@ -1,1 +1,5 @@
-rootProject.name = 'event-consumer'
+rootProject.name = 'log-analyzer-backend'
+
+include 'gateway-service'
+include 'log-service'
+include 'event-consumer'

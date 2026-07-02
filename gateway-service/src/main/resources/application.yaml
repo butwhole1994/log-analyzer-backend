@@ -1,3 +1,11 @@
+server:
+  port: ${PORT:7010}
+
 spring:
   application:
     name: gateway-service
+  profiles:
+    default: local
+  output:
+    ansi:
+      enabled: always
