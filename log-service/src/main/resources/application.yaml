@@ -9,3 +9,12 @@ spring:
   output:
     ansi:
       enabled: always
+  kafka:
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+app:
+  kafka:
+    topics:
+      log-events: ${KAFKA_TOPIC_LOG_EVENTS:mvp.log-events}

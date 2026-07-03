@@ -9,3 +9,11 @@ spring:
   output:
     ansi:
       enabled: always
+
+app:
+  kafka:
+    topics:
+      log-events: ${KAFKA_TOPIC_LOG_EVENTS:mvp.log-events}
+  opensearch:
+    url: ${OPENSEARCH_URL:http://localhost:19200}
+    index-name: ${OPENSEARCH_INDEX_NAME:logs-write}

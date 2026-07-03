@@ -24,7 +24,7 @@ bin/
 !**/src/test/**/bin/
 
 # Local env / config
-.env
+ai-rules/infra/.env_forAI
 .env.*
 *.local
 
@@ -39,3 +39,5 @@ bin/
 # OS files
 .DS_Store
 Thumbs.db
+
+ai-rules/
