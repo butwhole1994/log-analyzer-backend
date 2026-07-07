@@ -1,0 +1,20 @@
+${AnsiColor.BRIGHT_CYAN}
+ _      ___   ____        _    _   _    _    _ __   ______ _____ ____
+| |    / _ \ / ___|      / \  | \ | |  / \  | |\ \ / /__  /| ____|  _ \
+| |   | | | | |  _      / _ \ |  \| | / _ \ | | \ V /  / / |  _| | |_) |
+| |___| |_| | |_| |    / ___ \| |\  |/ ___ \| |__| |  / /_ | |___|  _ <
+|_____|\___/ \____|   /_/   \_\_| \_/_/   \_\____|_| /____||_____|_| \_\
+${AnsiColor.DEFAULT}
+${AnsiColor.BRIGHT_YELLOW}
+================================================================================
+${AnsiColor.DEFAULT}
+${AnsiColor.BRIGHT_WHITE}
+                              GATEWAY-SERVICE
+${AnsiColor.DEFAULT}
+${AnsiColor.BRIGHT_BLACK}
+                       Project : LOG-ANALYZER
+                       Role    : API Gateway / Routing
+${AnsiColor.DEFAULT}
+${AnsiColor.BRIGHT_YELLOW}
+================================================================================
+${AnsiColor.DEFAULT}
