@@ -10,20 +10,26 @@ public class OpenSearchLogIndexClient {
 
 	private final RestClient restClient;
 	private final String indexName;
+	private final String pipelineName;
 
 	public OpenSearchLogIndexClient(
 			@Value("${app.opensearch.url}") String openSearchUrl,
-			@Value("${app.opensearch.index-name}") String indexName
+			@Value("${app.opensearch.index-name}") String indexName,
+			@Value("${app.opensearch.pipeline-name}") String pipelineName
 	) {
 		this.restClient = RestClient.builder()
 				.baseUrl(openSearchUrl)
 				.build();
 		this.indexName = indexName;
+		this.pipelineName = pipelineName;
 	}
 
 	public void save(String documentId, String documentJson) {
 		restClient.post()
-				.uri("/{index}/_doc/{id}", indexName, documentId)
+				.uri(uriBuilder -> uriBuilder
+						.path("/{index}/_doc/{id}")
+						.queryParam("pipeline", pipelineName)
+						.build(indexName, documentId))
 				.contentType(MediaType.APPLICATION_JSON)
 				.body(documentJson)
 				.retrieve()

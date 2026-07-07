@@ -6,6 +6,9 @@ spring:
     name: event-consumer
   profiles:
     default: local
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
   output:
     ansi:
       enabled: always
@@ -17,3 +20,4 @@ app:
   opensearch:
     url: ${OPENSEARCH_URL:http://localhost:19200}
     index-name: ${OPENSEARCH_INDEX_NAME:logs-write}
+    pipeline-name: ${OPENSEARCH_PIPELINE_NAME:logs-pipeline}

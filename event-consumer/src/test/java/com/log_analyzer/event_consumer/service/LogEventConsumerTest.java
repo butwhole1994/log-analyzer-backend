@@ -4,7 +4,7 @@ import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.loganalyzer.eventconsumer.client.OpenSearchLogIndexClient;
-import com.loganalyzer.eventconsumer.dto.LogEventMessage;
+import com.loganalyzer.eventconsumer.dto.LogEventDocument;
 import com.loganalyzer.eventconsumer.service.LogEventConsumer;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
@@ -18,11 +18,20 @@ class LogEventConsumerTest {
 
 	@Test
 	void consume_savesPayloadToOpenSearchWriteAlias() throws Exception {
-		LogEventMessage message = new LogEventMessage(
+		LogEventDocument message = new LogEventDocument(
 				"event-1",
 				"log-service",
 				"INFO",
+				"com.loganalyzer.LogController",
+				"main",
 				"hello",
+				"trace-1",
+				"span-1",
+				"localhost",
+				"GET",
+				"/health",
+				200,
+				12L,
 				Instant.parse("2026-07-03T04:59:03Z")
 		);
 		String payload = objectMapper.writeValueAsString(message);
@@ -33,6 +42,9 @@ class LogEventConsumerTest {
 		ArgumentCaptor<String> payloadCaptor = ArgumentCaptor.forClass(String.class);
 		verify(openSearchLogIndexClient).save(idCaptor.capture(), payloadCaptor.capture());
 		org.junit.jupiter.api.Assertions.assertEquals("event-1", idCaptor.getValue());
-		org.junit.jupiter.api.Assertions.assertEquals(payload, payloadCaptor.getValue());
+		LogEventDocument saved = org.junit.jupiter.api.Assertions.assertDoesNotThrow(
+				() -> objectMapper.readValue(payloadCaptor.getValue(), LogEventDocument.class)
+		);
+		org.junit.jupiter.api.Assertions.assertEquals(message, saved);
 	}
 }

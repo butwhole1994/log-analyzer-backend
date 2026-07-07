@@ -5,6 +5,6 @@ import java.time.Instant;
 public record LogEventResponse(
 		String id,
 		String topic,
-		Instant createdAt
+		Instant timestamp
 ) {
 }

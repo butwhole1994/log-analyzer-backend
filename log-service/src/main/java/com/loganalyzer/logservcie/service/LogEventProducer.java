@@ -6,6 +6,7 @@ import com.loganalyzer.logservcie.dto.LogEventMessage;
 import com.loganalyzer.logservcie.dto.LogEventRequest;
 import com.loganalyzer.logservcie.dto.LogEventResponse;
 import java.time.Instant;
+import java.util.Locale;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,17 +27,43 @@ public class LogEventProducer {
 	private String logEventsTopic;
 
 	public LogEventResponse publish(LogEventRequest request) {
-		Instant createdAt = Instant.now();
+		Instant timestamp = request.timestamp() == null ? Instant.now() : request.timestamp();
+		String level = normalizeLevel(request.level());
+		String loggerName = normalizeText(request.loggerName(), serviceName);
+		String threadName = normalizeText(request.threadName(), Thread.currentThread().getName());
 		LogEventMessage message = new LogEventMessage(
 				UUID.randomUUID().toString(),
 				serviceName,
-				request.level() == null || request.level().isBlank() ? "INFO" : request.level(),
+				level,
+				loggerName,
+				threadName,
 				request.message(),
-				createdAt
+				request.traceId(),
+				request.spanId(),
+				request.host(),
+				request.method(),
+				request.path(),
+				request.statusCode(),
+				request.durationMs(),
+				timestamp
 		);
 
 		kafkaTemplate.send(logEventsTopic, message.id(), toJson(message));
-		return new LogEventResponse(message.id(), logEventsTopic, createdAt);
+		return new LogEventResponse(message.id(), logEventsTopic, timestamp);
+	}
+
+	private String normalizeLevel(String level) {
+		if (level == null || level.isBlank()) {
+			return "INFO";
+		}
+		return level.trim().toUpperCase(Locale.ROOT);
+	}
+
+	private String normalizeText(String value, String fallback) {
+		if (value == null || value.isBlank()) {
+			return fallback;
+		}
+		return value.trim();
 	}
 
 	private String toJson(LogEventMessage message) {

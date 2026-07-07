@@ -1,10 +1,12 @@
-package com.loganalyzer.logservcie.dto;
+package com.loganalyzer.eventconsumer.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.time.Instant;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record LogEventMessage(
+public record LogEventDocument(
 		String id,
 		String service,
 		String level,

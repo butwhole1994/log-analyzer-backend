@@ -19,9 +19,8 @@ spring:
       group-id: ${KAFKA_CONSUMER_GROUP_ID:log-analyzer-event-consumer-local}
       auto-offset-reset: earliest
       enable-auto-commit: false
-
-    key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-    value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
 
 app:
   kafka:
@@ -30,3 +29,4 @@ app:
   opensearch:
     url: ${OPENSEARCH_URL:http://localhost:19200}
     index-name: ${OPENSEARCH_INDEX_NAME:logs-write}
+    pipeline-name: ${OPENSEARCH_PIPELINE_NAME:logs-pipeline}
