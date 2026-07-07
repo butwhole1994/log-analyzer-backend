@@ -2,8 +2,47 @@
 
 ## 역할
 
-`log-service`는 로그 입력을 받는 API 계층이다.
-입력값을 정규화한 뒤 Kafka 이벤트로 발행하며, Spring Boot + Logback 기본 패턴과 맞물릴 수 있는 로그 메타데이터를 보강한다.
+`log-service`는 로그 입력을 받는 API 계층입니다.
+입력값을 정규화한 뒤 Kafka 이벤트로 발행하며, Spring Boot + Logback 기본 패턴과 맞물릴 수 있는 로그 메타데이터를 보강합니다.
+
+## 로컬 실행
+
+실행 전 전제:
+
+- PostgreSQL, Kafka, OpenSearch가 로컬에서 접근 가능해야 합니다.
+- JDK 17이 필요합니다.
+
+실행:
+
+```bash
+./gradlew :log-service:bootRun
+```
+
+기본 포트:
+
+- `7020`
+
+## 연결 확인
+
+### PostgreSQL
+
+`log-service`는 datasource 설정으로 PostgreSQL에 연결합니다.
+연결이 실패하면 애플리케이션 시작 단계에서 오류가 발생합니다.
+
+확인 기준:
+
+- `jdbc:postgresql://localhost:15432/log-analyzer-db`
+- 사용자: `admin`
+- 비밀번호: `admin1234`
+
+### Kafka producer
+
+`log-service`는 `mvp.log-events` 토픽에 이벤트를 발행합니다.
+
+확인 기준:
+
+- 요청 후 producer 로그가 남는지 확인
+- 발행 payload에 `id`, `service`, `level`, `loggerName`, `threadName`, `message`, `timestamp`가 포함되는지 확인
 
 ## AI 사용 범위
 

@@ -2,8 +2,38 @@
 
 ## 역할
 
-`gateway-service`는 외부 요청의 진입점이다.
-백엔드 서비스로의 라우팅을 담당하며, 요청 경로와 필터 구성이 핵심이다.
+`gateway-service`는 외부 요청의 진입점입니다.
+백엔드 서비스로의 라우팅을 담당하며, 요청 경로와 필터 구성이 핵심입니다.
+
+## 로컬 실행
+
+실행 전 전제:
+
+- `log-service`와 `event-consumer`가 사용할 backend 인프라가 준비되어 있어야 합니다.
+- JDK 17이 필요합니다.
+
+실행:
+
+```bash
+./gradlew :gateway-service:bootRun
+```
+
+기본 포트:
+
+- `7010`
+
+## 연결 확인
+
+### Route
+
+기본 라우팅 확인 경로:
+
+- `http://localhost:7010/log-service/api/log-events`
+
+확인 기준:
+
+- route prefix가 `log-service`로 시작하는지
+- `StripPrefix=1` 적용으로 실제 backend 경로가 올바르게 전달되는지
 
 ## AI 사용 범위
 

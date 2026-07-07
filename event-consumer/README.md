@@ -2,8 +2,55 @@
 
 ## 역할
 
-`event-consumer`는 Kafka에서 로그 이벤트를 소비하고 OpenSearch에 저장하는 적재 계층이다.
-Kafka payload를 문서 포맷으로 역직렬화한 뒤, OpenSearch write alias와 ingest pipeline을 사용해 저장한다.
+`event-consumer`는 Kafka에서 로그 이벤트를 소비하고 OpenSearch에 저장하는 적재 계층입니다.
+Kafka payload를 문서 포맷으로 역직렬화한 뒤, OpenSearch write alias와 ingest pipeline을 사용해 저장합니다.
+
+## 로컬 실행
+
+실행 전 전제:
+
+- PostgreSQL, Kafka, OpenSearch가 로컬에서 접근 가능해야 합니다.
+- JDK 17이 필요합니다.
+
+실행:
+
+```bash
+./gradlew :event-consumer:bootRun
+```
+
+기본 포트:
+
+- `7030`
+
+## 연결 확인
+
+### PostgreSQL
+
+`event-consumer`는 datasource 설정으로 PostgreSQL에 연결합니다.
+
+확인 기준:
+
+- `jdbc:postgresql://localhost:15432/log-analyzer-db`
+- 사용자: `admin`
+- 비밀번호: `admin1234`
+
+### Kafka consumer
+
+`event-consumer`는 `mvp.log-events` 토픽을 구독합니다.
+
+확인 기준:
+
+- `log-service`에서 이벤트를 발행한 뒤 consumer 로그가 남는지 확인
+- payload 역직렬화 실패가 없는지 확인
+
+### OpenSearch
+
+`event-consumer`는 `logs-write` alias와 `logs-pipeline`을 사용합니다.
+
+확인 기준:
+
+- 저장 성공 로그가 남는지 확인
+- Dashboards에서 `logs-*` 또는 `logs-read`로 조회 가능한지 확인
 
 ## AI 사용 범위
 
