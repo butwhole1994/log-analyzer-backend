@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @author butwhole1994
  */
 @RestController
-@RequestMapping("/api/log-events")
+@RequestMapping
 @RequiredArgsConstructor
 public class LogEventController {
 
@@ -33,7 +33,7 @@ public class LogEventController {
 	 * @param request 로그 입력 DTO
 	 * @return 발행 결과 DTO
 	 */
-	@PostMapping
+	@PostMapping({"/api/logs", "/api/log-events"})
 	@ResponseStatus(HttpStatus.ACCEPTED)
 	public LogEventResponse publish(@Valid @RequestBody LogEventRequest request) {
 		return logEventProducer.publish(request);

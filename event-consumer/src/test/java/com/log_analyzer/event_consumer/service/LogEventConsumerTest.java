@@ -7,6 +7,7 @@ import com.loganalyzer.eventconsumer.client.OpenSearchLogIndexClient;
 import com.loganalyzer.eventconsumer.dto.LogEventDocument;
 import com.loganalyzer.eventconsumer.service.LogEventConsumer;
 import java.time.Instant;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -26,13 +27,15 @@ class LogEventConsumerTest {
 				"main",
 				"hello",
 				"trace-1",
+				"request-1",
 				"span-1",
 				"localhost",
 				"GET",
 				"/health",
 				200,
 				12L,
-				Instant.parse("2026-07-03T04:59:03Z")
+				Instant.parse("2026-07-03T04:59:03Z"),
+				Map.of("region", "ap-northeast-2")
 		);
 		String payload = objectMapper.writeValueAsString(message);
 

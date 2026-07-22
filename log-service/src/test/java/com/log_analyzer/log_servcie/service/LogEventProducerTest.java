@@ -3,14 +3,18 @@ package com.log_analyzer.log_servcie.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.loganalyzer.logservcie.dto.LogEventRequest;
 import com.loganalyzer.logservcie.dto.LogEventMessage;
 import com.loganalyzer.logservcie.service.LogEventProducer;
 import java.time.Instant;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.Test;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class LogEventProducerTest {
@@ -23,10 +27,18 @@ class LogEventProducerTest {
 	void publish_sendsEventToInfraTopic() {
 		ReflectionTestUtils.setField(producer, "serviceName", "log-service");
 		ReflectionTestUtils.setField(producer, "logEventsTopic", "mvp.log-events");
+		CompletableFuture<SendResult<String, String>> sendResult = CompletableFuture.completedFuture(null);
+		when(kafkaTemplate.send(eq("mvp.log-events"), org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString()))
+				.thenReturn(sendResult);
 
 		var response = producer.publish(new LogEventRequest(
+				"order-service",
+				"INFO",
 				"hello",
-				"info",
+				Instant.parse("2026-07-03T04:59:03Z"),
+				"trace-1",
+				"request-1",
+				Map.of("region", "ap-northeast-2"),
 				"",
 				"",
 				"",
@@ -34,8 +46,6 @@ class LogEventProducerTest {
 				"/health",
 				200,
 				12L,
-				Instant.parse("2026-07-03T04:59:03Z"),
-				"trace-1",
 				"span-1"
 		));
 		var payloadCaptor = org.mockito.ArgumentCaptor.forClass(String.class);
@@ -49,12 +59,13 @@ class LogEventProducerTest {
 				() -> objectMapper.readValue(payloadCaptor.getValue(), LogEventMessage.class)
 		);
 		assertThat(message.id()).isEqualTo(response.id());
-		assertThat(message.service()).isEqualTo("log-service");
+		assertThat(message.service()).isEqualTo("order-service");
 		assertThat(message.level()).isEqualTo("INFO");
-		assertThat(message.loggerName()).isEqualTo("log-service");
+		assertThat(message.loggerName()).isEqualTo("order-service");
 		assertThat(message.threadName()).isEqualTo(Thread.currentThread().getName());
 		assertThat(message.message()).isEqualTo("hello");
 		assertThat(message.traceId()).isEqualTo("trace-1");
+		assertThat(message.requestId()).isEqualTo("request-1");
 		assertThat(message.spanId()).isEqualTo("span-1");
 		assertThat(message.host()).isBlank();
 		assertThat(message.method()).isEqualTo("GET");
@@ -62,5 +73,6 @@ class LogEventProducerTest {
 		assertThat(message.statusCode()).isEqualTo(200);
 		assertThat(message.durationMs()).isEqualTo(12L);
 		assertThat(message.timestamp()).isEqualTo(response.timestamp());
+		assertThat(message.metadata()).containsEntry("region", "ap-northeast-2");
 	}
 }

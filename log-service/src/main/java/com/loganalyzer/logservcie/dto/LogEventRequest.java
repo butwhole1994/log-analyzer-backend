@@ -1,40 +1,52 @@
 package com.loganalyzer.logservcie.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PastOrPresent;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import java.time.Instant;
+import java.util.Map;
 
 /**
- * log-service API가 받는 입력 DTO다.
- *
- * <p>이 타입은 사용자가 보내는 로그 입력 포맷이며,
- * Kafka/OpenSearch 공통 문서 포맷과는 분리되어 있다.
- *
- * @author butwhole1994
+ * Request body accepted by log-service before publishing a log event to Kafka.
  */
 public record LogEventRequest(
-		// 로그 본문
-		@NotBlank String message,
-		// 로그 레벨
+		@NotBlank(message = "serviceName is required")
+		@Size(max = 100, message = "serviceName must be 100 characters or fewer")
+		String serviceName,
+
+		@NotBlank(message = "level is required")
+		@Pattern(
+				regexp = "TRACE|DEBUG|INFO|WARN|ERROR",
+				message = "level must be one of TRACE, DEBUG, INFO, WARN, ERROR"
+		)
 		String level,
-		// 로그를 기록한 로거명
-		String loggerName,
-		// 로그를 기록한 스레드명
-		String threadName,
-		// 로그가 실행된 호스트명
-		String host,
-		// HTTP 메서드
-		String method,
-		// HTTP 요청 경로
-		String path,
-		// HTTP 응답 상태 코드
-		Integer statusCode,
-		// 요청 처리 시간
-		Long durationMs,
-		// 로그가 발생한 시각
+
+		@NotBlank(message = "message is required")
+		@Size(max = 4000, message = "message must be 4000 characters or fewer")
+		String message,
+
+		@NotNull(message = "timestamp is required")
+		@PastOrPresent(message = "timestamp must not be in the future")
 		Instant timestamp,
-		// 추적용 트레이스 ID
+
+		@Size(max = 100, message = "traceId must be 100 characters or fewer")
 		String traceId,
-		// 추적용 스팬 ID
+
+		@Size(max = 100, message = "requestId must be 100 characters or fewer")
+		String requestId,
+
+		@Size(max = 50, message = "metadata must contain 50 entries or fewer")
+		Map<String, Object> metadata,
+
+		String loggerName,
+		String threadName,
+		String host,
+		String method,
+		String path,
+		Integer statusCode,
+		Long durationMs,
 		String spanId
 ) {
 }

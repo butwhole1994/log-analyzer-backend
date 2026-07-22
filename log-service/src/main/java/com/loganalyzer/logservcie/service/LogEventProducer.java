@@ -5,10 +5,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.loganalyzer.logservcie.dto.LogEventMessage;
 import com.loganalyzer.logservcie.dto.LogEventRequest;
 import com.loganalyzer.logservcie.dto.LogEventResponse;
+import com.loganalyzer.logservcie.exception.KafkaPublishException;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
@@ -24,6 +29,7 @@ import org.springframework.stereotype.Service;
  * @author butwhole1994
  */
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class LogEventProducer {
 
@@ -48,28 +54,31 @@ public class LogEventProducer {
 	 * @return 발행 결과를 담은 응답 DTO
 	 */
 	public LogEventResponse publish(LogEventRequest request) {
-		Instant timestamp = request.timestamp() == null ? Instant.now() : request.timestamp();
+		Instant timestamp = request.timestamp();
 		String level = normalizeLevel(request.level());
-		String loggerName = normalizeText(request.loggerName(), serviceName);
+		String sourceServiceName = normalizeText(request.serviceName(), serviceName);
+		String loggerName = normalizeText(request.loggerName(), sourceServiceName);
 		String threadName = normalizeText(request.threadName(), Thread.currentThread().getName());
 		LogEventMessage message = new LogEventMessage(
 				UUID.randomUUID().toString(),
-				serviceName,
+				sourceServiceName,
 				level,
 				loggerName,
 				threadName,
 				request.message(),
 				request.traceId(),
+				request.requestId(),
 				request.spanId(),
 				request.host(),
 				request.method(),
 				request.path(),
 				request.statusCode(),
 				request.durationMs(),
-				timestamp
+				timestamp,
+				request.metadata()
 		);
 
-		kafkaTemplate.send(logEventsTopic, message.id(), toJson(message));
+		send(message);
 		return new LogEventResponse(message.id(), logEventsTopic, timestamp);
 	}
 
@@ -111,6 +120,22 @@ public class LogEventProducer {
 			return objectMapper.writeValueAsString(message);
 		} catch (JsonProcessingException exception) {
 			throw new IllegalStateException("Failed to serialize log event", exception);
+		}
+	}
+
+	private void send(LogEventMessage message) {
+		try {
+			kafkaTemplate.send(logEventsTopic, message.id(), toJson(message)).get(5, TimeUnit.SECONDS);
+		} catch (InterruptedException exception) {
+			Thread.currentThread().interrupt();
+			log.error("Kafka publish interrupted: id={}, topic={}", message.id(), logEventsTopic, exception);
+			throw new KafkaPublishException("Failed to publish log event", exception);
+		} catch (ExecutionException exception) {
+			log.error("Kafka publish failed: id={}, topic={}", message.id(), logEventsTopic, exception);
+			throw new KafkaPublishException("Failed to publish log event", exception);
+		} catch (TimeoutException exception) {
+			log.error("Kafka publish timed out: id={}, topic={}", message.id(), logEventsTopic, exception);
+			throw new KafkaPublishException("Failed to publish log event", exception);
 		}
 	}
 }
