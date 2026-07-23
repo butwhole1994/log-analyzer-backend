@@ -2,6 +2,8 @@ package com.loganalyzer.eventconsumer.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.loganalyzer.eventconsumer.dto.LogEventMessage;
@@ -25,7 +27,8 @@ class LogEventConsumerTest {
 
 	private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 	private final LogEventConsumeStatusService consumeStatusService = new LogEventConsumeStatusService(Clock.systemUTC());
-	private final LogEventConsumer consumer = new LogEventConsumer(objectMapper, consumeStatusService);
+	private final LogEventIndexService logEventIndexService = mock(LogEventIndexService.class);
+	private final LogEventConsumer consumer = new LogEventConsumer(objectMapper, consumeStatusService, logEventIndexService);
 
 	/**
 	 * log-service가 발행한 Kafka payload가 LogEventMessage로 역직렬화되는지 검증한다.
@@ -100,6 +103,7 @@ class LogEventConsumerTest {
 		assertThat(output).contains("requestId=request-1");
 		assertThat(output).contains("serviceName=order-service");
 		assertThat(output).contains("level=INFO");
+		verify(logEventIndexService).index(message);
 		assertThat(consumeStatusService.getStatus().consumedCount()).isEqualTo(1);
 		assertThat(consumeStatusService.getStatus().lastEvent().eventId()).isEqualTo("event-1");
 	}

@@ -55,4 +55,8 @@ public class OpenSearchLogIndexClient {
 				.retrieve()
 				.toBodilessEntity();
 	}
+
+	public String targetIndexName() {
+		return indexName;
+	}
 }

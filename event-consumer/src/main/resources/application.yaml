@@ -17,8 +17,12 @@ app:
   kafka:
     consumer:
       group-id: ${KAFKA_CONSUMER_GROUP_ID:event-consumer}
+      retry:
+        max-attempts: ${KAFKA_CONSUMER_RETRY_MAX_ATTEMPTS:3}
+        interval-ms: ${KAFKA_CONSUMER_RETRY_INTERVAL_MS:1000}
     topics:
       log-events: ${KAFKA_TOPIC_LOG_EVENTS:mvp.log-events}
+      log-events-dlq: ${KAFKA_TOPIC_LOG_EVENTS_DLQ:mvp.log-events.dlq}
   opensearch:
     url: ${OPENSEARCH_URL:http://localhost:19200}
     index-name: ${OPENSEARCH_INDEX_NAME:logs-write}

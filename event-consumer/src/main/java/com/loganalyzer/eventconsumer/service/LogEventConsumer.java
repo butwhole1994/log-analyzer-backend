@@ -23,6 +23,7 @@ public class LogEventConsumer {
 
 	/** consume 성공 여부를 API로 확인할 수 있도록 상태를 기록하는 서비스다. */
 	private final LogEventConsumeStatusService consumeStatusService;
+	private final LogEventIndexService logEventIndexService;
 
 	/**
 	 * Kafka에서 전달된 로그 이벤트 payload를 수신한다.
@@ -54,6 +55,7 @@ public class LogEventConsumer {
 	 * @param message 내부 처리 가능한 로그 이벤트 메시지
 	 */
 	void handle(LogEventMessage message) {
+		logEventIndexService.index(message);
 		consumeStatusService.recordConsumed(message);
 		log.info(
 				"Received log event for processing: eventId={}, traceId={}, requestId={}, serviceName={}, level={}",
