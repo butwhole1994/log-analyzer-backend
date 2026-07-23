@@ -6,6 +6,7 @@ import com.loganalyzer.logservcie.dto.LogEventMessage;
 import com.loganalyzer.logservcie.dto.LogEventRequest;
 import com.loganalyzer.logservcie.dto.LogEventResponse;
 import com.loganalyzer.logservcie.exception.KafkaPublishException;
+import com.loganalyzer.logservcie.trace.TraceContext;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.UUID;
@@ -59,6 +60,8 @@ public class LogEventProducer {
 		String sourceServiceName = normalizeText(request.serviceName(), serviceName);
 		String loggerName = normalizeText(request.loggerName(), sourceServiceName);
 		String threadName = normalizeText(request.threadName(), Thread.currentThread().getName());
+		String traceId = TraceContext.resolveTraceId(request.traceId());
+		String requestId = TraceContext.resolveRequestId(request.requestId());
 		LogEventMessage message = new LogEventMessage(
 				UUID.randomUUID().toString(),
 				sourceServiceName,
@@ -66,8 +69,8 @@ public class LogEventProducer {
 				loggerName,
 				threadName,
 				request.message(),
-				request.traceId(),
-				request.requestId(),
+				traceId,
+				requestId,
 				request.spanId(),
 				request.host(),
 				request.method(),
@@ -79,7 +82,7 @@ public class LogEventProducer {
 		);
 
 		send(message);
-		return new LogEventResponse(message.id(), logEventsTopic, timestamp);
+		return new LogEventResponse(message.id(), logEventsTopic, traceId, requestId, timestamp);
 	}
 
 	/**
@@ -128,13 +131,34 @@ public class LogEventProducer {
 			kafkaTemplate.send(logEventsTopic, message.id(), toJson(message)).get(5, TimeUnit.SECONDS);
 		} catch (InterruptedException exception) {
 			Thread.currentThread().interrupt();
-			log.error("Kafka publish interrupted: id={}, topic={}", message.id(), logEventsTopic, exception);
+			log.error(
+					"Kafka publish interrupted: id={}, topic={}, trace_id={}, request_id={}",
+					message.id(),
+					logEventsTopic,
+					message.traceId(),
+					message.requestId(),
+					exception
+			);
 			throw new KafkaPublishException("Failed to publish log event", exception);
 		} catch (ExecutionException exception) {
-			log.error("Kafka publish failed: id={}, topic={}", message.id(), logEventsTopic, exception);
+			log.error(
+					"Kafka publish failed: id={}, topic={}, trace_id={}, request_id={}",
+					message.id(),
+					logEventsTopic,
+					message.traceId(),
+					message.requestId(),
+					exception
+			);
 			throw new KafkaPublishException("Failed to publish log event", exception);
 		} catch (TimeoutException exception) {
-			log.error("Kafka publish timed out: id={}, topic={}", message.id(), logEventsTopic, exception);
+			log.error(
+					"Kafka publish timed out: id={}, topic={}, trace_id={}, request_id={}",
+					message.id(),
+					logEventsTopic,
+					message.traceId(),
+					message.requestId(),
+					exception
+			);
 			throw new KafkaPublishException("Failed to publish log event", exception);
 		}
 	}

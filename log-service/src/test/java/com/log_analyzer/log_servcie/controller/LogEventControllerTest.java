@@ -12,6 +12,8 @@ import com.loganalyzer.logservcie.dto.LogEventResponse;
 import com.loganalyzer.logservcie.exception.GlobalExceptionHandler;
 import com.loganalyzer.logservcie.exception.KafkaPublishException;
 import com.loganalyzer.logservcie.service.LogEventProducer;
+import com.loganalyzer.logservcie.trace.TraceContext;
+import com.loganalyzer.logservcie.trace.TraceContextFilter;
 import java.time.Instant;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,18 +38,23 @@ class LogEventControllerTest {
 				.standaloneSetup(new LogEventController(logEventProducer))
 				.setControllerAdvice(new GlobalExceptionHandler())
 				.setValidator(validator)
+				.addFilters(new TraceContextFilter())
 				.build();
 	}
 
 	@Test
 	void publish_returnsAcceptedForValidRequest() throws Exception {
-		when(logEventProducer.publish(any())).thenReturn(new LogEventResponse(
+		when(logEventProducer.publish(any())).thenAnswer(invocation -> new LogEventResponse(
 				"log-1",
 				"mvp.log-events",
+				TraceContext.currentTraceId(),
+				TraceContext.currentRequestId(),
 				Instant.parse("2026-07-03T04:59:03Z")
 		));
 
 		mockMvc.perform(post("/api/logs")
+						.header("X-Trace-Id", "trace-header-1")
+						.header("X-Request-Id", "request-header-1")
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("""
 								{
@@ -59,8 +66,40 @@ class LogEventControllerTest {
 								}
 								"""))
 				.andExpect(status().isAccepted())
-				.andExpect(jsonPath("$.id").value("log-1"))
-				.andExpect(jsonPath("$.topic").value("mvp.log-events"));
+				.andExpect(jsonPath("$.success").value(true))
+				.andExpect(jsonPath("$.data.id").value("log-1"))
+				.andExpect(jsonPath("$.data.topic").value("mvp.log-events"))
+				.andExpect(jsonPath("$.data.traceId").value("trace-header-1"))
+				.andExpect(jsonPath("$.data.requestId").value("request-header-1"))
+				.andExpect(jsonPath("$.meta").doesNotExist())
+				.andExpect(jsonPath("$.error").doesNotExist());
+	}
+
+	@Test
+	void publish_setsTraceHeadersWhenMissing() throws Exception {
+		when(logEventProducer.publish(any())).thenAnswer(invocation -> new LogEventResponse(
+				"log-1",
+				"mvp.log-events",
+				TraceContext.currentTraceId(),
+				TraceContext.currentRequestId(),
+				Instant.parse("2026-07-03T04:59:03Z")
+		));
+
+		mockMvc.perform(post("/api/logs")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "serviceName": "order-service",
+								  "level": "INFO",
+								  "message": "created order",
+								  "timestamp": "2026-07-03T04:59:03Z"
+								}
+								"""))
+				.andExpect(status().isAccepted())
+				.andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().exists("X-Trace-Id"))
+				.andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().exists("X-Request-Id"))
+				.andExpect(jsonPath("$.data.traceId").exists())
+				.andExpect(jsonPath("$.data.requestId").exists());
 	}
 
 	@Test
@@ -76,12 +115,17 @@ class LogEventControllerTest {
 								}
 								"""))
 				.andExpect(status().isBadRequest())
-				.andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
-				.andExpect(jsonPath("$.path").value("/api/logs"))
-				.andExpect(jsonPath("$.details[*].field", hasItem("serviceName")))
-				.andExpect(jsonPath("$.details[*].field", hasItem("level")))
-				.andExpect(jsonPath("$.details[*].field", hasItem("message")))
-				.andExpect(jsonPath("$.details[*].field", hasItem("timestamp")));
+				.andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().exists("X-Trace-Id"))
+				.andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().exists("X-Request-Id"))
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.data").doesNotExist())
+				.andExpect(jsonPath("$.meta").doesNotExist())
+				.andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"))
+				.andExpect(jsonPath("$.error.path").value("/api/logs"))
+				.andExpect(jsonPath("$.error.details[*].field", hasItem("serviceName")))
+				.andExpect(jsonPath("$.error.details[*].field", hasItem("level")))
+				.andExpect(jsonPath("$.error.details[*].field", hasItem("message")))
+				.andExpect(jsonPath("$.error.details[*].field", hasItem("timestamp")));
 	}
 
 	@Test
@@ -90,8 +134,9 @@ class LogEventControllerTest {
 						.contentType(MediaType.APPLICATION_JSON)
 						.content("{"))
 				.andExpect(status().isBadRequest())
-				.andExpect(jsonPath("$.code").value("MALFORMED_JSON"))
-				.andExpect(jsonPath("$.path").value("/api/logs"));
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.error.code").value("MALFORMED_JSON"))
+				.andExpect(jsonPath("$.error.path").value("/api/logs"));
 	}
 
 	@Test
@@ -110,9 +155,28 @@ class LogEventControllerTest {
 								  "message": "failed order",
 								  "timestamp": "2026-07-03T04:59:03Z"
 								}
-								"""))
+						"""))
 				.andExpect(status().isServiceUnavailable())
-				.andExpect(jsonPath("$.code").value("KAFKA_PUBLISH_FAILED"))
-				.andExpect(jsonPath("$.path").value("/api/logs"));
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.error.code").value("KAFKA_PUBLISH_FAILED"))
+				.andExpect(jsonPath("$.error.path").value("/api/logs"));
+	}
+
+	@Test
+	void publish_returnsValidationErrorForLowercaseLevel() throws Exception {
+		mockMvc.perform(post("/api/logs")
+						.contentType(MediaType.APPLICATION_JSON)
+						.content("""
+								{
+								  "serviceName": "order-service",
+								  "level": "info",
+								  "message": "created order",
+								  "timestamp": "2026-07-03T04:59:03Z"
+								}
+								"""))
+				.andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.success").value(false))
+				.andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"))
+				.andExpect(jsonPath("$.error.details[*].field", hasItem("level")));
 	}
 }

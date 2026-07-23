@@ -1,5 +1,6 @@
 package com.loganalyzer.logservcie.controller;
 
+import com.loganalyzer.logservcie.dto.ApiResponse;
 import com.loganalyzer.logservcie.dto.LogEventRequest;
 import com.loganalyzer.logservcie.dto.LogEventResponse;
 import com.loganalyzer.logservcie.service.LogEventProducer;
@@ -35,7 +36,7 @@ public class LogEventController {
 	 */
 	@PostMapping({"/api/logs", "/api/log-events"})
 	@ResponseStatus(HttpStatus.ACCEPTED)
-	public LogEventResponse publish(@Valid @RequestBody LogEventRequest request) {
-		return logEventProducer.publish(request);
+	public ApiResponse<LogEventResponse> publish(@Valid @RequestBody LogEventRequest request) {
+		return ApiResponse.success(logEventProducer.publish(request));
 	}
 }

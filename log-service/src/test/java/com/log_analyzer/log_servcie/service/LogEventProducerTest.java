@@ -9,10 +9,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.loganalyzer.logservcie.dto.LogEventRequest;
 import com.loganalyzer.logservcie.dto.LogEventMessage;
 import com.loganalyzer.logservcie.service.LogEventProducer;
+import com.loganalyzer.logservcie.trace.TraceConstants;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -23,10 +26,17 @@ class LogEventProducerTest {
 	private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 	private final LogEventProducer producer = new LogEventProducer(kafkaTemplate, objectMapper);
 
+	@AfterEach
+	void tearDown() {
+		MDC.clear();
+	}
+
 	@Test
 	void publish_sendsEventToInfraTopic() {
 		ReflectionTestUtils.setField(producer, "serviceName", "log-service");
 		ReflectionTestUtils.setField(producer, "logEventsTopic", "mvp.log-events");
+		MDC.put(TraceConstants.TRACE_ID_MDC_KEY, "trace-header-1");
+		MDC.put(TraceConstants.REQUEST_ID_MDC_KEY, "request-header-1");
 		CompletableFuture<SendResult<String, String>> sendResult = CompletableFuture.completedFuture(null);
 		when(kafkaTemplate.send(eq("mvp.log-events"), org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString()))
 				.thenReturn(sendResult);
@@ -36,8 +46,8 @@ class LogEventProducerTest {
 				"INFO",
 				"hello",
 				Instant.parse("2026-07-03T04:59:03Z"),
-				"trace-1",
-				"request-1",
+				"trace-body-1",
+				"request-body-1",
 				Map.of("region", "ap-northeast-2"),
 				"",
 				"",
@@ -52,6 +62,8 @@ class LogEventProducerTest {
 
 		assertThat(response.topic()).isEqualTo("mvp.log-events");
 		assertThat(response.id()).isNotBlank();
+		assertThat(response.traceId()).isEqualTo("trace-header-1");
+		assertThat(response.requestId()).isEqualTo("request-header-1");
 		assertThat(response.timestamp()).isEqualTo(Instant.parse("2026-07-03T04:59:03Z"));
 		verify(kafkaTemplate).send(eq("mvp.log-events"), eq(response.id()), payloadCaptor.capture());
 
@@ -64,8 +76,8 @@ class LogEventProducerTest {
 		assertThat(message.loggerName()).isEqualTo("order-service");
 		assertThat(message.threadName()).isEqualTo(Thread.currentThread().getName());
 		assertThat(message.message()).isEqualTo("hello");
-		assertThat(message.traceId()).isEqualTo("trace-1");
-		assertThat(message.requestId()).isEqualTo("request-1");
+		assertThat(message.traceId()).isEqualTo("trace-header-1");
+		assertThat(message.requestId()).isEqualTo("request-header-1");
 		assertThat(message.spanId()).isEqualTo("span-1");
 		assertThat(message.host()).isBlank();
 		assertThat(message.method()).isEqualTo("GET");
