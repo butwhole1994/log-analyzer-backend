@@ -1,4 +1,4 @@
-package com.loganalyzer.logservcie.dto;
+package com.loganalyzer.logservice.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -9,7 +9,24 @@ import java.time.Instant;
 import java.util.Map;
 
 /**
- * Request body accepted by log-service before publishing a log event to Kafka.
+ * 로그 이벤트를 Kafka로 발행하기 전에 HTTP API에서 받는 요청 본문이다.
+ *
+ * @param serviceName 로그를 발생시킨 서비스명
+ * @param level 로그 레벨
+ * @param message 로그 메시지 본문
+ * @param timestamp 로그 발생 시각
+ * @param traceId 요청 흐름 추적 식별자
+ * @param requestId 단일 요청 식별자
+ * @param metadata 로그와 함께 전달되는 확장 메타데이터
+ * @param loggerName 로거 이름
+ * @param threadName 로그가 발생한 스레드 이름
+ * @param host 요청 호스트
+ * @param method HTTP 메서드
+ * @param path 요청 경로
+ * @param statusCode HTTP 응답 상태 코드
+ * @param durationMs 요청 처리 시간 밀리초
+ * @param spanId 분산 추적 구간 식별자
+ * @author butwhole1994
  */
 public record LogEventRequest(
 		@NotBlank(message = "serviceName is required")

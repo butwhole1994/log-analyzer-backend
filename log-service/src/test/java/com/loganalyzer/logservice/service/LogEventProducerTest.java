@@ -1,4 +1,4 @@
-package com.log_analyzer.log_servcie.service;
+package com.loganalyzer.logservice.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -6,10 +6,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.loganalyzer.logservcie.dto.LogEventRequest;
-import com.loganalyzer.logservcie.dto.LogEventMessage;
-import com.loganalyzer.logservcie.service.LogEventProducer;
-import com.loganalyzer.logservcie.trace.TraceConstants;
+import com.loganalyzer.logservice.dto.LogEventRequest;
+import com.loganalyzer.logservice.dto.LogEventMessage;
+import com.loganalyzer.logservice.service.LogEventProducer;
+import com.loganalyzer.logservice.trace.TraceConstants;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -20,17 +20,28 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.SendResult;
 import org.springframework.test.util.ReflectionTestUtils;
 
+/**
+ * LogEventProducer가 요청 DTO를 Kafka 발행 메시지로 정확히 변환하는지 검증한다.
+ *
+ * @author butwhole1994
+ */
 class LogEventProducerTest {
 
 	private final KafkaTemplate<String, String> kafkaTemplate = org.mockito.Mockito.mock(KafkaTemplate.class);
 	private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 	private final LogEventProducer producer = new LogEventProducer(kafkaTemplate, objectMapper);
 
+	/**
+	 * 테스트 간 MDC 추적 정보가 누수되지 않도록 정리한다.
+	 */
 	@AfterEach
 	void tearDown() {
 		MDC.clear();
 	}
 
+	/**
+	 * Kafka 토픽, 메시지 키, JSON payload, 응답 추적 정보가 기대값과 일치하는지 검증한다.
+	 */
 	@Test
 	void publish_sendsEventToInfraTopic() {
 		ReflectionTestUtils.setField(producer, "serviceName", "log-service");

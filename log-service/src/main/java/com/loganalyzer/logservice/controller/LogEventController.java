@@ -1,9 +1,9 @@
-package com.loganalyzer.logservcie.controller;
+package com.loganalyzer.logservice.controller;
 
-import com.loganalyzer.logservcie.dto.ApiResponse;
-import com.loganalyzer.logservcie.dto.LogEventRequest;
-import com.loganalyzer.logservcie.dto.LogEventResponse;
-import com.loganalyzer.logservcie.service.LogEventProducer;
+import com.loganalyzer.logservice.dto.ApiResponse;
+import com.loganalyzer.logservice.dto.LogEventRequest;
+import com.loganalyzer.logservice.dto.LogEventResponse;
+import com.loganalyzer.logservice.service.LogEventProducer;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -14,9 +14,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * 로그 저장 테스트 API를 제공하는 컨트롤러다.
- *
- * <p>이 API는 log-service가 로그 포맷을 정의하고 Kafka로 넘기는 역할을 검증하기 위한 진입점이다.
+ * 로그 이벤트 수집 요청을 받아 Kafka 발행 계층으로 전달하는 HTTP 컨트롤러다.
  *
  * @author butwhole1994
  */
@@ -25,14 +23,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class LogEventController {
 
-	// 로그 이벤트 발행을 담당하는 서비스다.
 	private final LogEventProducer logEventProducer;
 
 	/**
-	 * 로그 저장 요청을 받아 Kafka 발행 결과를 반환한다.
+	 * 로그 이벤트 요청을 검증한 뒤 발행 결과를 표준 API 응답으로 반환한다.
 	 *
-	 * @param request 로그 입력 DTO
-	 * @return 발행 결과 DTO
+	 * @param request 로그 이벤트 발행 요청 본문
+	 * @return 발행된 로그 이벤트의 식별자와 추적 정보
 	 */
 	@PostMapping({"/api/logs", "/api/log-events"})
 	@ResponseStatus(HttpStatus.ACCEPTED)

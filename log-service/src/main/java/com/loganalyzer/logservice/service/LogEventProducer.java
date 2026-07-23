@@ -1,12 +1,12 @@
-package com.loganalyzer.logservcie.service;
+package com.loganalyzer.logservice.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.loganalyzer.logservcie.dto.LogEventMessage;
-import com.loganalyzer.logservcie.dto.LogEventRequest;
-import com.loganalyzer.logservcie.dto.LogEventResponse;
-import com.loganalyzer.logservcie.exception.KafkaPublishException;
-import com.loganalyzer.logservcie.trace.TraceContext;
+import com.loganalyzer.logservice.dto.LogEventMessage;
+import com.loganalyzer.logservice.dto.LogEventRequest;
+import com.loganalyzer.logservice.dto.LogEventResponse;
+import com.loganalyzer.logservice.exception.KafkaPublishException;
+import com.loganalyzer.logservice.trace.TraceContext;
 import java.time.Instant;
 import java.util.Locale;
 import java.util.UUID;
@@ -20,12 +20,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
 /**
- * 로그 요청을 Kafka 이벤트로 변환해 발행하는 서비스다.
- *
- * <p>역할:
- * - API 계층에서 들어온 로그 입력을 정규화한다.
- * - Spring Boot + Logback 기본 패턴과 호환 가능한 메타데이터를 보완한다.
- * - Kafka로 전달할 직렬화된 메시지를 만든다.
+ * HTTP 요청 DTO를 Kafka 로그 이벤트 메시지로 변환하고 지정 토픽으로 발행하는 서비스다.
  *
  * @author butwhole1994
  */
@@ -34,25 +29,25 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class LogEventProducer {
 
-	// Kafka로 JSON 문자열을 전송하기 위한 템플릿이다.
+	/** Kafka로 JSON 문자열 메시지를 전송하는 템플릿이다. */
 	private final KafkaTemplate<String, String> kafkaTemplate;
 
-	// 요청과 이벤트 객체를 JSON으로 직렬화하기 위한 ObjectMapper다.
+	/** 로그 이벤트 메시지를 JSON으로 직렬화하는 매퍼다. */
 	private final ObjectMapper objectMapper;
 
-	// 현재 애플리케이션의 서비스명이다.
+	/** 요청에 서비스명이 없을 때 사용할 애플리케이션 기본 서비스명이다. */
 	@Value("${spring.application.name}")
 	private String serviceName;
 
-	// 로그 이벤트를 발행할 Kafka 토픽명이다.
+	/** 로그 이벤트를 발행할 Kafka 토픽명이다. */
 	@Value("${app.kafka.topics.log-events}")
 	private String logEventsTopic;
 
 	/**
-	 * 로그 요청을 정규화한 뒤 Kafka 이벤트로 발행한다.
+	 * 검증된 로그 이벤트 요청을 Kafka 메시지로 변환해 발행한다.
 	 *
-	 * @param request API에서 전달된 로그 입력값
-	 * @return 발행 결과를 담은 응답 DTO
+	 * @param request HTTP API에서 전달된 로그 이벤트 요청
+	 * @return 발행 결과와 추적 식별자가 담긴 응답 DTO
 	 */
 	public LogEventResponse publish(LogEventRequest request) {
 		Instant timestamp = request.timestamp();
@@ -86,10 +81,10 @@ public class LogEventProducer {
 	}
 
 	/**
-	 * 로그 레벨을 표준 대문자 형식으로 정규화한다.
+	 * 로그 레벨 값을 대문자 표준 형식으로 정규화한다.
 	 *
-	 * @param level 입력된 로그 레벨
-	 * @return 기본값이 적용된 로그 레벨
+	 * @param level 요청에서 전달된 로그 레벨
+	 * @return 비어 있으면 INFO, 값이 있으면 대문자로 변환한 로그 레벨
 	 */
 	private String normalizeLevel(String level) {
 		if (level == null || level.isBlank()) {
@@ -99,11 +94,11 @@ public class LogEventProducer {
 	}
 
 	/**
-	 * 문자열 값을 기본값 기준으로 보정한다.
+	 * 문자열 값을 공백 제거 후 반환하고, 값이 없으면 기본값을 사용한다.
 	 *
-	 * @param value 입력값
-	 * @param fallback 비어 있을 때 사용할 기본값
-	 * @return 정규화된 문자열
+	 * @param value 요청에서 전달된 문자열 값
+	 * @param fallback 값이 비어 있을 때 사용할 기본값
+	 * @return 정규화된 문자열 값
 	 */
 	private String normalizeText(String value, String fallback) {
 		if (value == null || value.isBlank()) {
@@ -113,9 +108,9 @@ public class LogEventProducer {
 	}
 
 	/**
-	 * 이벤트 객체를 Kafka 전송용 JSON 문자열로 변환한다.
+	 * 로그 이벤트 메시지를 Kafka 전송용 JSON 문자열로 변환한다.
 	 *
-	 * @param message 직렬화할 이벤트 객체
+	 * @param message 직렬화할 로그 이벤트 메시지
 	 * @return JSON 문자열
 	 */
 	private String toJson(LogEventMessage message) {
@@ -126,6 +121,11 @@ public class LogEventProducer {
 		}
 	}
 
+	/**
+	 * Kafka 발행 완료를 제한 시간 안에 확인하고 실패 원인을 서비스 예외로 변환한다.
+	 *
+	 * @param message 발행할 로그 이벤트 메시지
+	 */
 	private void send(LogEventMessage message) {
 		try {
 			kafkaTemplate.send(logEventsTopic, message.id(), toJson(message)).get(5, TimeUnit.SECONDS);
