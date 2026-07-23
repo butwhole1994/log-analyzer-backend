@@ -16,7 +16,7 @@ spring:
 #    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:log-analyzer-kafka:9092}
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:19092}
     consumer:
-      group-id: ${KAFKA_CONSUMER_GROUP_ID:log-analyzer-event-consumer-local}
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:event-consumer}
       auto-offset-reset: earliest
       enable-auto-commit: false
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
@@ -24,6 +24,8 @@ spring:
 
 app:
   kafka:
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:event-consumer}
     topics:
       log-events: ${KAFKA_TOPIC_LOG_EVENTS:mvp.log-events}
   opensearch:

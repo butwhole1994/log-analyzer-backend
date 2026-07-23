@@ -2,20 +2,14 @@ package com.loganalyzer.eventconsumer.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.loganalyzer.eventconsumer.client.OpenSearchLogIndexClient;
-import com.loganalyzer.eventconsumer.dto.LogEventDocument;
+import com.loganalyzer.eventconsumer.dto.LogEventMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
 /**
- * Kafka로 들어온 로그 이벤트를 OpenSearch에 적재하는 소비자 서비스다.
- *
- * <p>역할:
- * - Kafka payload를 문서 DTO로 역직렬화한다.
- * - OpenSearch 저장용 JSON으로 다시 직렬화한다.
- * - 적재 결과를 애플리케이션 로그로 남긴다.
+ * mvp.log-events 토픽의 로그 이벤트 메시지를 소비하고 내부 처리 가능한 메시지로 변환한다.
  *
  * @author butwhole1994
  */
@@ -24,55 +18,64 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class LogEventConsumer {
 
-	// Kafka payload를 문서 DTO로 바꾸기 위한 ObjectMapper다.
+	/** Kafka payload를 로그 이벤트 메시지 DTO로 역직렬화하는 매퍼다. */
 	private final ObjectMapper objectMapper;
 
-	// OpenSearch에 문서를 저장하는 클라이언트다.
-	private final OpenSearchLogIndexClient openSearchLogIndexClient;
+	/** consume 성공 여부를 API로 확인할 수 있도록 상태를 기록하는 서비스다. */
+	private final LogEventConsumeStatusService consumeStatusService;
 
 	/**
-	 * Kafka payload를 문서로 변환한 뒤 OpenSearch에 저장한다.
+	 * Kafka에서 전달된 로그 이벤트 payload를 수신한다.
 	 *
-	 * @param payload Kafka에서 전달된 JSON 문자열
+	 * @param payload Kafka에서 수신한 JSON 문자열
 	 */
-	@KafkaListener(topics = "${app.kafka.topics.log-events}")
+	@KafkaListener(
+			topics = "${app.kafka.topics.log-events}",
+			groupId = "${app.kafka.consumer.group-id}"
+	)
 	public void consume(String payload) {
-		LogEventDocument event = deserialize(payload);
-		openSearchLogIndexClient.save(event.id(), toJson(event));
+		LogEventMessage message = deserialize(payload);
+		handle(message);
 		log.info(
-				"Stored log event in OpenSearch: id={}, level={}, service={}, logger={}",
-				event.id(),
-				event.level(),
-				event.service(),
-				event.loggerName()
+				"Consumed log event successfully: eventId={}, traceId={}, requestId={}, serviceName={}, level={}",
+				message.eventId(),
+				message.traceId(),
+				message.requestId(),
+				message.serviceName(),
+				message.level()
 		);
 	}
 
 	/**
-	 * Kafka payload를 문서 DTO로 역직렬화한다.
+	 * 역직렬화된 로그 이벤트 메시지를 후속 처리 계층으로 전달한다.
 	 *
-	 * @param payload Kafka에서 받은 JSON 문자열
-	 * @return 문서 DTO
+	 * <p>현재 work item에서는 OpenSearch 색인, retry, DLQ 처리를 수행하지 않는다.
+	 *
+	 * @param message 내부 처리 가능한 로그 이벤트 메시지
 	 */
-	private LogEventDocument deserialize(String payload) {
-		try {
-			return objectMapper.readValue(payload, LogEventDocument.class);
-		} catch (JsonProcessingException exception) {
-			throw new IllegalArgumentException("Invalid log event payload", exception);
-		}
+	void handle(LogEventMessage message) {
+		consumeStatusService.recordConsumed(message);
+		log.info(
+				"Received log event for processing: eventId={}, traceId={}, requestId={}, serviceName={}, level={}",
+				message.eventId(),
+				message.traceId(),
+				message.requestId(),
+				message.serviceName(),
+				message.level()
+		);
 	}
 
 	/**
-	 * 문서 DTO를 OpenSearch 저장용 JSON 문자열로 변환한다.
+	 * Kafka payload JSON을 로그 이벤트 메시지 DTO로 역직렬화한다.
 	 *
-	 * @param event 저장할 문서 DTO
-	 * @return JSON 문자열
+	 * @param payload Kafka에서 수신한 JSON 문자열
+	 * @return 역직렬화된 로그 이벤트 메시지
 	 */
-	private String toJson(LogEventDocument event) {
+	LogEventMessage deserialize(String payload) {
 		try {
-			return objectMapper.writeValueAsString(event);
+			return objectMapper.readValue(payload, LogEventMessage.class);
 		} catch (JsonProcessingException exception) {
-			throw new IllegalStateException("Failed to serialize log event document", exception);
+			throw new IllegalArgumentException("Invalid log event payload", exception);
 		}
 	}
 }
