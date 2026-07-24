@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @author butwhole1994
  */
 @RestController
-@RequestMapping
+@RequestMapping("/api/logs")
 @RequiredArgsConstructor
 public class LogEventController {
 
@@ -31,7 +31,7 @@ public class LogEventController {
 	 * @param request 로그 이벤트 발행 요청 본문
 	 * @return 발행된 로그 이벤트의 식별자와 추적 정보
 	 */
-	@PostMapping({"/api/logs", "/api/log-events"})
+	@PostMapping
 	@ResponseStatus(HttpStatus.ACCEPTED)
 	public ApiResponse<LogEventResponse> publish(@Valid @RequestBody LogEventRequest request) {
 		return ApiResponse.success(logEventProducer.publish(request));

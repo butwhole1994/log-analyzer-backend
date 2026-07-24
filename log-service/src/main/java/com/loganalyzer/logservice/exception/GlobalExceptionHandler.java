@@ -106,6 +106,22 @@ public class GlobalExceptionHandler {
 	 * @param request 현재 HTTP 요청
 	 * @return 표준 내부 서버 오류 응답
 	 */
+	@ExceptionHandler(OpenSearchSearchException.class)
+	public ResponseEntity<ApiResponse<Void>> handleOpenSearchSearchException(
+			OpenSearchSearchException exception,
+			HttpServletRequest request
+	) {
+		log.error(
+				"OpenSearch search failed while handling request: path={}, trace_id={}, request_id={}, reason={}",
+				request.getRequestURI(),
+				TraceContext.currentTraceId(),
+				TraceContext.currentRequestId(),
+				exception.getMessage(),
+				exception
+		);
+		return build(ErrorCode.OPENSEARCH_SEARCH_FAILED, request.getRequestURI(), List.of());
+	}
+
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ApiResponse<Void>> handleException(Exception exception, HttpServletRequest request) {
 		log.error(

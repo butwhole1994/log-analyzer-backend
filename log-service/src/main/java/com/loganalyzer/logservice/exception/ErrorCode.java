@@ -11,6 +11,7 @@ public enum ErrorCode {
 	VALIDATION_FAILED(HttpStatus.BAD_REQUEST, "Request validation failed"),
 	MALFORMED_JSON(HttpStatus.BAD_REQUEST, "Request body is malformed or unreadable"),
 	KAFKA_PUBLISH_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "Failed to publish log event"),
+	OPENSEARCH_SEARCH_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "Failed to search logs"),
 	INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "Unexpected server error");
 
 	private final HttpStatus status;

@@ -23,3 +23,6 @@ app:
   kafka:
     topics:
       log-events: ${KAFKA_TOPIC_LOG_EVENTS:mvp.log-events}
+  opensearch:
+    url: ${OPENSEARCH_URL:http://localhost:19200}
+    read-target: ${OPENSEARCH_READ_TARGET:logs-read}

@@ -15,9 +15,7 @@ spring:
     #          uri: ${LOG_SERVICE_URL:http://log-service:7020}
               uri: ${LOG_SERVICE_URL:http://localhost:7020}
               predicates:
-                - Path=/log-service/**
-              filters:
-                - StripPrefix=1
+                - Path=/api/logs/**
             - id: event-consumer
     #          uri: ${EVENT_CONSUMER_URL:http://event-consumer:7030}
               uri: ${EVENT_CONSUMER_URL:http://localhost:7030}
